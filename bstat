@@ -1,0 +1,58 @@
+#!/bin/bash
+
+# Default values
+USER_OPTION=$(whoami)  # Default to current user
+QUEUE_OPTION=""
+STATE_OPTION="-a"     # Default to 'all', any state
+
+# Function to display usage
+usage() {
+    echo "Usage: $0 [-u user] [-q queue] [-s {a|r|p|s}] [-h]"
+    echo "  -u user       Specify the user (default: current user)"
+    echo "  -q queue      Specify the queue (default: \$LSB_DEFAULTQUEUE if defined, else none). Use 'all' to see all queues"
+    echo "                but note that if you also do -u all, you'll see jobs from every LPC user."
+    echo "  -s state      Specify the job state:"
+    echo "                 a = all jobs (default)"
+    echo "                 r = running jobs"
+    echo "                 p = pending jobs"
+    echo "                 s = suspended jobs"
+    echo "  -h            Display this help message"
+    exit 0
+}
+
+# Parse options
+while getopts "u:q:s:h" opt; do
+    case $opt in
+        u) USER_OPTION="$OPTARG" ;;         # Set user
+        q) QUEUE_OPTION="$OPTARG" ;;       # Set queue
+        s)
+            case "$OPTARG" in
+                a) STATE_OPTION="-a" ;;    # All jobs
+                r) STATE_OPTION="-r" ;;    # Running jobs
+                p) STATE_OPTION="-p" ;;    # Pending jobs
+                s) STATE_OPTION="-s" ;;    # Suspended jobs
+                *) echo "Invalid state option: $OPTARG"; usage ;;
+            esac
+            ;;
+        h) usage ;;                          # Display usage and exit
+        *) usage ;;                          # Display usage for invalid options
+    esac
+done
+
+# Handle default queue
+if [ -z "$QUEUE_OPTION" ]; then
+    if [ -n "$LSB_DEFAULTQUEUE" ]; then
+        QUEUE_OPTION="$LSB_DEFAULTQUEUE"
+    fi
+fi
+
+# Build bjobs command
+CMD=(bjobs $STATE_OPTION -u "$USER_OPTION" -o "jobid:10 user:12 stat:8 queue:14 exec_host:14 name:32 start_time:16 submit_time:16 max_mem:12 cpu_peak:12 gpu_mode:12 gpu_alloc:12 gpu_num:8 delimiter=' '")
+
+# Add queue filter if specified
+if [ -n "$QUEUE_OPTION" ] && [ "$QUEUE_OPTION" != "all" ]; then
+    CMD+=("-q" "$QUEUE_OPTION")
+fi
+
+# Execute the command
+"${CMD[@]}"
