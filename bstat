@@ -3,7 +3,7 @@
 # Default values
 USER_OPTION=$(whoami)  # Default to current user
 QUEUE_OPTION=""
-STATE_OPTION="-a"     # Default to 'all', any state
+STATE_OPTION="-prs"     # Default to pending, runnning, or suspended jobs
 
 # Function to display usage
 usage() {
@@ -11,11 +11,12 @@ usage() {
     echo "  -u user       Specify the user (default: current user)"
     echo "  -q queue      Specify the queue (default: \$LSB_DEFAULTQUEUE if defined, else none). Use 'all' to see all queues"
     echo "                but note that if you also do -u all, you'll see jobs from every LPC user."
-    echo "  -s state      Specify the job state:"
-    echo "                 a = all jobs (default)"
-    echo "                 r = running jobs"
-    echo "                 p = pending jobs"
-    echo "                 s = suspended jobs"
+    echo "  -s state(s)   Specify the job state using supported bjobs flags, eg:"
+    echo "                  a = all jobs"
+    echo "                  r = running jobs"
+    echo "                  p = pending jobs"
+    echo "                  s = suspended jobs"
+    echo "                  Default is equivalent to -s prs"
     echo "  -h            Display this help message"
     exit 0
 }
@@ -25,15 +26,7 @@ while getopts "u:q:s:h" opt; do
     case $opt in
         u) USER_OPTION="$OPTARG" ;;         # Set user
         q) QUEUE_OPTION="$OPTARG" ;;       # Set queue
-        s)
-            case "$OPTARG" in
-                a) STATE_OPTION="-a" ;;    # All jobs
-                r) STATE_OPTION="-r" ;;    # Running jobs
-                p) STATE_OPTION="-p" ;;    # Pending jobs
-                s) STATE_OPTION="-s" ;;    # Suspended jobs
-                *) echo "Invalid state option: $OPTARG"; usage ;;
-            esac
-            ;;
+        s) STATE_OPTION="-${OPTARG}" ;;
         h) usage ;;                          # Display usage and exit
         *) usage ;;                          # Display usage for invalid options
     esac
